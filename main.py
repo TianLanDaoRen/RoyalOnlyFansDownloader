@@ -53,7 +53,6 @@ class Asset:
     def _generate_filename(self) -> str:
         clean_text = re.sub(r'<[^>]+>', '', self.text if self.text else "")
         clean_text = re.sub(r'[\\/:*?"<>|\n\r]', '', clean_text).strip()
-        clean_text = clean_text[:50]
         if not clean_text:
             clean_text = f"untitled_{uuid.uuid4().hex[:8]}"
 
