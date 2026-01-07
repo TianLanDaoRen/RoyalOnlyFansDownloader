@@ -11,19 +11,19 @@
 <br>
 *High-performance, fully automated OnlyFans media scraper designed for the Emperor.*
 
-[特性](#-特性) • [安装](#-安装) • [使用](#-使用方法) • [免责声明](#-免责声明)
+[特性](#features) • [安装](#installation) • [使用](#usage) • [免责声明](#disclaimer)
 
 </div>
 
 ---
 
-## 📖 简介 | Introduction
+## <a id="intro"></a>📖 简介 | Introduction
 
 这是一个基于 **Python** 的高性能爬虫工具，结合了 `Playwright` 的流量拦截能力与 `Httpx` 的异步并发下载能力。
 
 它能够自动处理复杂的签名验证、自动滚动页面（含归档页）、自动识别媒体资源，并提供断点续传和本地缓存功能。无需繁琐的手动抓包，**登录即用**。
 
-## ✨ 特性 | Features
+## <a id="features"></a>✨ 特性 | Features
 
 *   **⚡ 极速并发**：使用 `asyncio` + `httpx`，支持 5+ 线程并发下载，跑满带宽。
 *   **🕵️‍♂️ 流量劫持**：基于 `Playwright` 监听网络请求，自动提取高画质资源，无视签名算法更新。
@@ -40,7 +40,7 @@
     *   下载完成后自动生成资源清单 (`manifest.json`)。
 *   **🎨 绝美 CLI 界面**：使用 `Rich` 库构建，提供实时进度条、下载速度监控和彩色日志。
 
-## 🛠️ 安装 | Installation
+## <a id="installation"></a>🛠️ 安装 | Installation
 
 确保你的环境中有 Python 3.8+。
 
@@ -64,7 +64,7 @@
     playwright install chromium
     ```
 
-## 🚀 使用方法 | Usage
+## <a id="usage"></a>🚀 使用方法 | Usage
 
 直接运行主程序：
 
@@ -87,7 +87,7 @@ python main.py
     *   自动滚动主页及归档页。
     *   抓取结束后自动关闭浏览器并开始高速下载。
 
-## ⚙️ 配置文件 | Configuration
+## <a id="config"></a>⚙️ 配置文件 | Configuration
 
 脚本会在首次运行后生成 `wanwan_config.json`，你也可以手动修改：
 
@@ -99,7 +99,7 @@ python main.py
 }
 ```
 
-## 📂 输出结构 | Output
+## <a id="output"></a>📂 输出结构 | Output
 
 下载的资源将保存在 `Royal_OnlyFans_Collection/{user_id}` 目录下：
 
@@ -112,7 +112,7 @@ Royal_OnlyFans_Collection/
 └── ...
 ```
 
-## ⚠️ 免责声明 | Disclaimer
+## <a id="disclaimer"></a>⚠️ 免责声明 | Disclaimer
 
 本工具仅供**技术研究与个人学习**使用（以及供皇上解压使用）。
 *   请勿用于非法传播受版权保护的内容。
