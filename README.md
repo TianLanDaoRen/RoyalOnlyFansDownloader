@@ -25,7 +25,7 @@
 
 ## <a id="features"></a>✨ 特性 | Features
 
-*   **⚡ 极速并发**：使用 `asyncio` + `httpx`，支持 5+ 线程并发下载，跑满带宽。
+*   **⚡ 极速并发**：使用 `asyncio` + `httpx`，支持多线程并发下载，跑满带宽。
 *   **🕵️‍♂️ 流量劫持**：基于 `Playwright` 监听网络请求，自动提取高画质资源，无视签名算法更新。
 *   **🤖 全自动操作**：
     *   支持**自动填充账号密码**登录。
@@ -46,8 +46,8 @@
 
 1.  **克隆仓库**
     ```bash
-    git clone https://github.com/YourUsername/Royal-OF-Downloader.git
-    cd Royal-OF-Downloader
+    git clone https://github.com/TianLanDaoRen/RoyalOnlyFansDownloader.git
+    cd RoyalOnlyFansDownloader
     ```
 
 2.  **安装依赖**
