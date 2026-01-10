@@ -63,7 +63,7 @@
 
 2.  **安装 Python 依赖**
     ```bash
-    pip install playwright httpx[socks] rich aiofiles pywidevine protobuf
+    pip install -r requirements.txt
     ```
 
 ## <a id="usage"></a>🚀 使用方法 | Usage
