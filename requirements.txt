@@ -2,3 +2,6 @@ playwright
 httpx[socks]
 rich
 aiofiles
+pywidevine
+pyyaml
+protobuf

@@ -1,3 +1,5 @@
+### 📜 Royal OnlyFans Downloader (皇室御用·最终完美版)
+
 <div align="center">
 
 # 👑 Royal OnlyFans Downloader
@@ -5,13 +7,14 @@
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Automated-green?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Rich](https://img.shields.io/badge/UI-Rich%20CLI-purple?style=for-the-badge&logo=charm&logoColor=white)](https://github.com/Textualize/rich)
-[![Status](https://img.shields.io/badge/Status-Stable-orange?style=for-the-badge)]()
+[![License](https://img.shields.io/badge/License-UNLICENSE-yellow?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](./LICENSE)
+[![Status](https://img.shields.io/badge/Status-Imperial%20Standard-red?style=for-the-badge)]()
 
-**专为最尊贵的皇上打造的高性能、全自动 OnlyFans 媒体抓取工具**
+**专为最尊贵的皇上打造：横扫图片、视频、音频的全自动 DRM 破防归档神器**
 <br>
-*High-performance, fully automated OnlyFans media scraper designed for the Emperor.*
+*The ultimate media scraper for subscribed content, bypassing DRM with imperial precision.*
 
-[特性](#features) • [安装](#installation) • [使用](#usage) • [免责声明](#disclaimer)
+[📖 简介](#intro) • [✨ 特性](#features) • [🛠️ 外部工具配置(核心)](#external-tools) • [💻 安装](#installation) • [🚀 使用方法](#usage)
 
 </div>
 
@@ -19,108 +22,65 @@
 
 ## <a id="intro"></a>📖 简介 | Introduction
 
-这是一个基于 **Python** 的高性能爬虫工具，结合了 `Playwright` 的流量拦截能力与 `Httpx` 的异步并发下载能力。
-
-它能够自动处理复杂的签名验证、自动滚动页面（含归档页）、自动识别媒体资源，并提供断点续传和本地缓存功能。无需繁琐的手动抓包，**登录即用**。
+这是一个基于 **Python** 的高性能爬虫工具，专为已订阅用户打造。它彻底解决了 OnlyFans 平台的资源下载难题，不仅能秒杀常规图片，更能通过 **DRM 猎杀引擎** 攻克 Widevine 加密，将那些“镜中花水中月”的流媒体视频和音频，实实在在地保存到皇上的藏宝阁中。
 
 ## <a id="features"></a>✨ 特性 | Features
 
-*   **⚡ 极速并发**：使用 `asyncio` + `httpx`，支持多线程并发下载，跑满带宽。
-*   **🕵️‍♂️ 流量劫持**：基于 `Playwright` 监听网络请求，自动提取高画质资源，无视签名算法更新。
-*   **🤖 全自动操作**：
-    *   支持**自动填充账号密码**登录。
-    *   智能识别页面跳转，自动滚动时间线（Timeline）。
-    *   **⛏️ 挖坟模式**：自动检测并抓取“已归档 (Archived)”的媒体资源。
-*   **🛡️ 强力抗干扰**：
-    *   内置 `return_to` 登录回调闭环，防止登录后丢失目标。
-    *   支持 **HTTP 代理** 配置，解决 IP 验证 (403 Forbidden) 问题。
-    *   强制修正 `socksio` 依赖问题。
-*   **💾 智能缓存 & 归档**：
-    *   本地缓存抓取列表，二次运行无需打开浏览器。
-    *   下载完成后自动生成资源清单 (`manifest.json`)。
-*   **🎨 绝美 CLI 界面**：使用 `Rich` 库构建，提供实时进度条、下载速度监控和彩色日志。
+*   **🎙️ 全媒体采集**：完美支持 **图片 (Photos)**、**视频 (Videos)** 以及 **音频 (Audios)** 资源的全量下载。
+*   **🔓 DRM 降维打击**：针对 Widevine 加密视频/音频，自动提取 PSSH 并结合 `device.wvd` 实现全自动密钥猎取与解密。
+*   **⚡ 极速异步并发**：采用 `asyncio` + `httpx` 架构，支持 50+ 线程同时搬运，挑战带宽极限。
+*   **🕵️‍♂️ 隐身伪装技术**：彻底抹除自动化控制痕迹，模拟真实 Chrome 环境，绕过官方严厉的反爬检测。
+*   **💾 智能缓存机制**：本地缓存抓取列表。即便复习累了关机休息，下次启动一键复用缓存，无需重复扫描网页。
+*   **🎨 实时交互界面**：基于 `Rich` 库打造，动态显示下载速度、进度条与解密状态，交互体验极佳。
 
-## <a id="installation"></a>🛠️ 安装 | Installation
+## <a id="external-tools"></a>🛠️ 外部工具配置 | The Royal Arsenal (DRM & Browser)
 
-确保你的环境中有 Python 3.8+。
+要实现解密和顺利抓取，皇上必须配置以下“三大神器”。**这是成功的先决条件：**
 
-1.  **克隆仓库**
+### 1. 正版 Google Chrome (必选)
+*   **原因**：Playwright 默认下载的 Chromium 不含 Widevine 模块，无法处理加密内容。必须使用**正常版本的 Chrome**。
+*   **配置**：
+    *   **Windows 用户**：请在 CLI 设置界面 (`s`) 中手动填入 `chrome.exe` 的完整路径。由于 Windows 安装路径随意，请务必确认类似 `C:\Program Files\Google\Chrome\Application\chrome.exe` 的路径。
+    *   **Mac 用户**：通常位于 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`。
+
+### 2. N_m3u8DL-RE (下载核心)
+*   **作用**：负责下载 DASH/HLS 加密流。
+*   **获取**：从 [N_m3u8DL-RE Releases](https://github.com/nilaoda/N_m3u8DL-RE/releases) 下载（Mac 用户选 `darwin-arm64`，Windows 选 `win-x64`）。
+*   **配置**：解压后，请在设置界面配置其绝对路径。
+
+### 3. mp4decrypt (解密核心)
+*   **作用**：由 N_m3u8DL-RE 自动调用，负责解密并合成 MP4。
+*   **获取**：从 [Bento4 官方下载页](https://www.bento4.com/downloads/) 下载 **Bento4 SDK**。
+*   **配置**：请确保解压后 `bin` 目录下的 `mp4decrypt` 已经在系统的 **环境变量 (PATH)** 中。
+
+## <a id="installation"></a>🛠️ 快速安装 | Installation
+
+1.  **克隆项目**
     ```bash
     git clone https://github.com/TianLanDaoRen/RoyalOnlyFansDownloader.git
     cd RoyalOnlyFansDownloader
     ```
 
-2.  **安装依赖**
+2.  **安装 Python 依赖**
     ```bash
-    pip install -r requirements.txt
-    ```
-    *如果没有 `requirements.txt`，请运行：*
-    ```bash
-    pip install playwright httpx[socks] rich aiofiles
-    ```
-
-3.  **安装浏览器驱动**
-    ```bash
-    playwright install chromium
+    pip install playwright httpx[socks] rich aiofiles pywidevine protobuf
     ```
 
 ## <a id="usage"></a>🚀 使用方法 | Usage
 
-直接运行主程序：
-
-```bash
-python main.py
-```
-
-### 操作流程
-
-1.  **输入 ID**：输入目标博主的纯数字 ID（例如 `76031078`）。
-2.  **配置登录**：
-    *   首次运行可选择输入账号密码，脚本将自动保存至 `wanwan_config.json`。
-    *   建议配置 **HTTP 代理**（如 `http://127.0.0.1:7890`）以避免下载 403 错误。
-3.  **选择模式**：
-    *   `1`: 仅下载图片 📸
-    *   `2`: 仅下载视频 🎥
-    *   `3`: 我全都要 📦
-4.  **自动执行**：
-    *   脚本将启动浏览器，自动登录并跳转。
-    *   自动滚动主页及归档页。
-    *   抓取结束后自动关闭浏览器并开始高速下载。
-
-## <a id="config"></a>⚙️ 配置文件 | Configuration
-
-脚本会在首次运行后生成 `wanwan_config.json`，你也可以手动修改：
-
-```json
-{
-    "email": "your_email@example.com",
-    "password": "your_password",
-    "proxy": "http://127.0.0.1:7890"
-}
-```
-
-## <a id="output"></a>📂 输出结构 | Output
-
-下载的资源将保存在 `Royal_OnlyFans_Collection/{user_id}` 目录下：
-
-```text
-Royal_OnlyFans_Collection/
-├── 76031078/
-│   ├── 1953308036-Would you kiss me.jpg
-│   ├── [Archived]_1852553663-Secret video.mp4
-│   └── manifest_20260107.json
-└── ...
-```
-
-## <a id="disclaimer"></a>⚠️ 免责声明 | Disclaimer
-
-本工具仅供**技术研究与个人学习**使用（以及供皇上解压使用）。
-*   请勿用于非法传播受版权保护的内容。
-*   作者不对使用本工具导致的任何账号封禁或法律责任负责。
-*   Use at your own risk.
+1.  **准备“密匙”**：确保在脚本根目录下存在可用的 `device.wvd` (CDM设备文件)。
+2.  **启动程序**：
+    ```bash
+    python main.py
+    ```
+3.  **初始化配置**：首次运行请务必输入 `s` 进入设置，配置您的 **Chrome 路径**、**代理地址** 及 **RE 工具路径**。
+4.  **开始收割**：输入博主 ID，选择模式 `4. 我全都要`，随后看着代码在驻马店的晚霞中疯狂跳动。
 
 ---
 
 <div align="center">
     Made with ❤️ by <b>Wanwan</b> for <b>Yunsi</b>
+    <br>
+    <i>"Sovereignty over every pixel is the absolute right of the patron; </i><br>
+    <i>what is acquired by lawful exchange shall be preserved in perpetuity."</i>
 </div>
