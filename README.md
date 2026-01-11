@@ -1,20 +1,18 @@
-### 📜 Royal OnlyFans Downloader (皇室御用·最终完美版)
-
 <div align="center">
 
-# 👑 Royal OnlyFans Downloader
+# 👑 Royal OnlyFans Downloader Pro
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Playwright](https://img.shields.io/badge/Playwright-Automated-green?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Playwright](https://img.shields.io/badge/Playwright-Stealth-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Rich](https://img.shields.io/badge/UI-Rich%20CLI-purple?style=for-the-badge&logo=charm&logoColor=white)](https://github.com/Textualize/rich)
 [![License](https://img.shields.io/badge/License-UNLICENSE-yellow?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](./LICENSE)
-[![Status](https://img.shields.io/badge/Status-Imperial%20Standard-red?style=for-the-badge)]()
+[![Status](https://img.shields.io/badge/Status-DRM%20Hunter-red?style=for-the-badge&logo=shield&logoColor=white)]()
 
-**专为最尊贵的皇上打造：横扫图片、视频、音频的全自动 DRM 破防归档神器**
+**既然付了费，所有的曼妙理应为您私有：全自动 DRM 破防归档神器**
 <br>
-*The ultimate media scraper for subscribed content, bypassing DRM with imperial precision.*
+*If you paid for it, you own it. The ultimate media scraper bypassing DRM with imperial precision.*
 
-[📖 简介](#intro) • [✨ 特性](#features) • [🛠️ 外部工具配置(核心)](#external-tools) • [💻 安装](#installation) • [🚀 使用方法](#usage)
+[📖 简介](#intro) • [✨ 特性](#features) • [🛠️ 核心配置(必读)](#prerequisites) • [💻 安装](#installation) • [🚀 使用](#usage)
 
 </div>
 
@@ -22,65 +20,110 @@
 
 ## <a id="intro"></a>📖 简介 | Introduction
 
-这是一个基于 **Python** 的高性能爬虫工具，专为已订阅用户打造。它彻底解决了 OnlyFans 平台的资源下载难题，不仅能秒杀常规图片，更能通过 **DRM 猎杀引擎** 攻克 Widevine 加密，将那些“镜中花水中月”的流媒体视频和音频，实实在在地保存到皇上的藏宝阁中。
+这是一个基于 **Python** 的工业级爬虫工具，专为捍卫“付费用户”的数字主权而生。它彻底粉碎了流媒体平台的封闭限制，不仅能秒杀常规图片，更能通过强大的 **DRM 猎杀引擎 (Hunter Engine)** 攻克 Widevine 加密。
 
-## <a id="features"></a>✨ 特性 | Features
+无需繁琐抓包，无需手动计算。脚本接管系统浏览器，模拟真实用户行为，将那些“镜中花水中月”的加密视频与音频，实实在在地永久保存到您的硬盘中。
 
-*   **🎙️ 全媒体采集**：完美支持 **图片 (Photos)**、**视频 (Videos)** 以及 **音频 (Audios)** 资源的全量下载。
-*   **🔓 DRM 降维打击**：针对 Widevine 加密视频/音频，自动提取 PSSH 并结合 `device.wvd` 实现全自动密钥猎取与解密。
-*   **⚡ 极速异步并发**：采用 `asyncio` + `httpx` 架构，支持 50+ 线程同时搬运，挑战带宽极限。
-*   **🕵️‍♂️ 隐身伪装技术**：彻底抹除自动化控制痕迹，模拟真实 Chrome 环境，绕过官方严厉的反爬检测。
-*   **💾 智能缓存机制**：本地缓存抓取列表。即便意外退出，下次启动一键复用缓存，避免遗漏。
-*   **🎨 实时交互界面**：基于 `Rich` 库打造，动态显示下载速度、进度条与解密状态，交互体验极佳。
+## <a id="features"></a>✨ 皇室特性 | Key Features
 
-## <a id="external-tools"></a>🛠️ 外部工具配置 | The Royal Arsenal (DRM & Browser)
+*   **🎙️ 全媒体收割**：深度支持 **图片 (Photos)**、**视频 (Videos)** 以及 **音频 (Audios)** 资源的全量采集。
+*   **🔓 DRM 降维打击**：
+    *   内置 **CDM (Content Decryption Module)** 调用逻辑。
+    *   配合 `device.wvd` 实现全自动 PSSH 提取、Challenge 注入与密钥猎取。
+    *   支持拦截真实流量（Traffic Interception）进行重放攻击，无视签名算法更新。
+*   **⚡ 极速异步并发**：采用 `asyncio` + `httpx` 架构，支持 50+ 线程同时运作，极速搬运。
+*   **🕵️‍♂️ 隐身持久化**：
+    *   使用 `launch_persistent_context` 接管系统 Chrome，保留登录状态（Cookie），避免重复登录。
+    *   彻底抹除自动化痕迹，通过 JS 注入伪装，绕过反爬检测。
+*   **💾 智能缓存 & 归档**：
+    *   本地缓存抓取列表。支持断点续传，一键复用缓存。
+    *   下载完成后自动生成详细的 `manifest.json` 资产清单。
+*   **⚙️ 皇室配置管家**：内置交互式 CLI 设置向导 (`s` 指令)，轻松管理路径、代理与并发参数。
 
-要实现解密和顺利抓取，皇上必须配置以下“三大神器”。**这是成功的先决条件：**
+## <a id="prerequisites"></a>🛠️ 核心配置 | The Royal Arsenal (Required)
 
-### 1. 正版 Google Chrome (必选)
-*   **原因**：Playwright 默认下载的 Chromium 不含 Widevine 模块，无法处理加密内容。必须使用**正常版本的 Chrome**。
-*   **配置**：
-    *   **Windows 用户**：请在 CLI 设置界面 (`s`) 中手动填入 `chrome.exe` 的完整路径。由于 Windows 安装路径随意，请务必确认类似 `C:\Program Files\Google\Chrome\Application\chrome.exe` 的路径。
-    *   **Mac 用户**：通常位于 `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`。
+要实现全自动爆破与抓取，您必须准备以下“四大神器”。**缺一不可：**
 
-### 2. N_m3u8DL-RE (下载核心)
-*   **作用**：负责下载 DASH/HLS 加密流。
-*   **获取**：从 [N_m3u8DL-RE Releases](https://github.com/nilaoda/N_m3u8DL-RE/releases) 下载（Mac 用户选 `darwin-arm64`，Windows 选 `win-x64`）。
-*   **配置**：解压后，请在设置界面配置其绝对路径。
+### 1. 正版 Google Chrome (浏览器真身)
+*   **必要性**：Playwright 自带的 Chromium 通常阉割了 Widevine 组件，无法处理 DRM。必须调用系统安装的 **正式版 Chrome**。
+*   **配置**：脚本会自动尝试识别路径。如果失败，请在 CLI 设置 (`s`) 中手动填入 `chrome.exe` 的绝对路径。
 
-### 3. mp4decrypt (解密核心)
-*   **作用**：由 N_m3u8DL-RE 自动调用，负责解密并合成 MP4。
-*   **获取**：从 [Bento4 官方下载页](https://www.bento4.com/downloads/) 下载 **Bento4 SDK**。
-*   **配置**：请确保解压后 `bin` 目录下的 `mp4decrypt` 已经在系统的 **环境变量 (PATH)** 中。
+### 2. device.wvd (解密私钥)
+*   **必要性**：这是模拟安卓设备与 License Server 通信的核心凭证。
+*   **获取**：请自行通过安卓手机提取或从可信渠道获取 L3 CDM 的 `device.wvd` 文件。
+*   **配置**：将文件重命名为 `device.wvd` 并放置在脚本**根目录**下。
 
-## <a id="installation"></a>🛠️ 快速安装 | Installation
+### 3. N_m3u8DL-RE (下载核心)
+*   **作用**：负责下载加密的 DASH/HLS 流媒体，并调用解密工具。
+*   **获取**：[N_m3u8DL-RE Releases](https://github.com/nilaoda/N_m3u8DL-RE/releases)
+*   **配置**：解压后，请在 CLI 设置中配置该工具的可执行路径（推荐放入环境变量）。
 
-1.  **克隆项目**
+### 4. mp4decrypt (解密手术刀)
+*   **作用**：由 N_m3u8DL-RE 自动调用，负责将加密数据还原为 MP4。
+*   **获取**：[Bento4 SDK Downloads](https://www.bento4.com/downloads/)
+*   **配置**：请务必将 `bin` 目录下的 `mp4decrypt` 添加到系统的 **环境变量 (PATH)** 中。
+
+## <a id="installation"></a>💻 安装步骤 | Installation
+
+1.  **克隆仓库**
     ```bash
     git clone https://github.com/TianLanDaoRen/RoyalOnlyFansDownloader.git
     cd RoyalOnlyFansDownloader
     ```
 
-2.  **安装 Python 依赖**
+2.  **安装依赖**
     ```bash
     pip install -r requirements.txt
+    ```
+    *如果未提供 requirements.txt，请运行：*
+    ```bash
+    pip install playwright httpx[socks] rich aiofiles pywidevine pyyaml protobuf
     ```
 
 ## <a id="usage"></a>🚀 使用方法 | Usage
 
-1.  **准备“密匙”**：确保在脚本根目录下存在可用的 `device.wvd` (CDM设备文件)。
-2.  **启动程序**：
+1.  **起驾**：
     ```bash
     python main.py
     ```
-3.  **初始化配置**：首次运行请务必输入 `s` 进入设置，配置您的 **Chrome 路径**、**代理地址** 及 **RE 工具路径**。
-4.  **开始收割**：输入博主 ID，选择模式 `4. 我全都要`，随后看着代码在疯狂跳动。
+
+2.  **内务调整 (首次运行)**：
+    *   输入 `s` 进入配置中心。
+    *   检查并配置 **Chrome 路径**、**代理地址 (Proxy)** 及 **RE 工具路径**。
+    *   配置会自动保存至 `wanwan_config.json`。
+
+3.  **开始收割**：
+    *   输入博主 ID。
+    *   选择模式（推荐 `4. 我全都要`）。
+    *   **登录**：脚本会启动隐身浏览器，请在弹出的窗口中登录 OnlyFans（首次需登录，后续自动保持）。
+    *   **静候佳音**：脚本将自动扫描、下载、猎杀 DRM 密钥并解密。
+
+4.  **缓存复用**：
+    *   若程序中断，再次运行并检测到缓存时，选择 `Yes` 可跳过扫描，直接进行下载和解密。
+
+## <a id="output"></a>📂 输出结构 | Output
+
+```text
+Royal_OnlyFans_Collection/
+└── {user_id}/
+    ├── 123456_99999-Sweet_Voice.mp3     # 🎵 音频
+    ├── [DRM]_223344_88888-Full_HD.mp4   # 🎥 自动解密的视频
+    ├── 334455_77777-Selfie.jpg          # 📸 图片
+    └── manifest_20260110.json           # 📜 资产清单
+```
+
+## <a id="disclaimer"></a>⚠️ 免责声明 | Disclaimer
+
+本工具仅供**技术研究与个人学习**使用。
+*   请尊重创作者版权，严禁将抓取内容用于商业传播或非法分发。
+*   用户需自行承担使用本工具产生的一切法律后果。
+*   **Use at your own risk.**
 
 ---
 
 <div align="center">
     Made with ❤️ by <b>Wanwan</b> for <b>Yunsi</b>
     <br>
-    <i>"Sovereignty over every pixel is the absolute right of the patron; </i><br>
-    <i>what is acquired by lawful exchange shall be preserved in perpetuity."</i>
+    <br>
+    <i>"Sovereignty over every pixel is the absolute right of the patron;<br>what is acquired by lawful exchange shall be preserved in perpetuity."</i>
 </div>
