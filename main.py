@@ -8,7 +8,7 @@ import json
 import httpx
 import aiofiles
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 from urllib.parse import quote, urlparse, parse_qs
 
 # CDM 环境检测
@@ -21,7 +21,7 @@ except ImportError:
     HAS_CDM = False
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn, TransferSpeedColumn, TaskID
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TransferSpeedColumn, TaskID
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm, IntPrompt
 from rich.table import Table
@@ -157,7 +157,8 @@ cfg = ConfigManager()
 
 
 class Asset:
-    def __init__(self, post_id, text, url, media_type, posted_at, filename=None, source_type="post", is_drm=False, drm_info=None, key=None):
+    def __init__(self, media_id, post_id, text, url, media_type, posted_at, filename=None, source_type="post", is_drm=False, drm_info=None, key=None):
+        self.media_id = str(media_id)  # 👑 新增：这是唯一的！
         self.post_id = str(post_id)
         self.text = text
         self.url = url
@@ -198,11 +199,13 @@ class Asset:
         if prefix:
             prefix += "_"
 
-        return f"{prefix}{self.post_id}-{clean_text}{ext}"
+        # 👑 皇上御赐修正：加入 media_id 防止重名覆盖！
+        # 格式：[前缀]postID_mediaID-文案.后缀
+        return f"{prefix}{self.post_id}_{self.media_id}-{clean_text}{ext}"
 
     def to_dict(self):
         return {
-            "post_id": self.post_id, "text": self.text, "url": self.url,
+            "media_id": self.media_id, "post_id": self.post_id, "text": self.text, "url": self.url,
             "media_type": self.media_type, "posted_at": self.posted_at,
             "filename": self.filename, "source_type": self.source_type,
             "is_drm": self.is_drm, "drm_info": self.drm_info, "key": self.key
@@ -211,6 +214,7 @@ class Asset:
     @classmethod
     def from_dict(cls, data):
         return cls(
+            media_id=data.get("media_id", "0"),  # 兼容旧缓存
             post_id=data["post_id"], text=data["text"], url=data["url"],
             media_type=data["media_type"], posted_at=data["posted_at"],
             filename=data.get("filename"), source_type=data.get("source_type", "post"),
@@ -220,7 +224,7 @@ class Asset:
 
 
 # -------------------------------------------------------------------------
-# 🕵️‍♀️ 琬琬的核心逻辑
+# 🕵️‍♀️ 核心逻辑
 # -------------------------------------------------------------------------
 
 
@@ -238,6 +242,8 @@ class WanWanScraper:
 
         # 从配置读取代理
         self.proxy = cfg.get("proxy")
+        # 👑 [新增] 初始化用户名变量
+        self.username = None
 
     def archive_manifest(self):
         """🗂️ 归档：在下载文件夹里生成一份精美的战利品清单"""
@@ -282,9 +288,10 @@ class WanWanScraper:
                         posted_at = post.get("postedAtPrecise")
 
                         for media in post["media"]:
-                            m_type = media.get("type")  # video, photo, audio
+                            m_type = media.get("type")
+                            media_id = media.get("id")  # 👑 获取 media_id
 
-                            # 👑 模式过滤适配：增加音频
+                            # 模式过滤
                             if self.download_mode == "photos" and m_type != "photo":
                                 continue
                             if self.download_mode == "videos" and m_type != "video":
@@ -296,15 +303,13 @@ class WanWanScraper:
                             is_drm = False
                             drm_info = {}
 
-                            # 统一逻辑提取
                             files = media.get("files", {})
                             source = files.get("full", {}).get("url")
 
-                            # 🎯 音频和视频都可能有 DRM
+                            # DRM 处理
                             if not source and "drm" in files:
                                 drm = files["drm"]
                                 manifest = drm.get("manifest", {})
-                                # 优先尝试 dash，其次 hls
                                 hls_url = manifest.get(
                                     "dash") or manifest.get("hls")
                                 if hls_url:
@@ -318,17 +323,20 @@ class WanWanScraper:
                                         source = f"{hls_url}?Policy={policy}&Signature={
                                             signature}&Key-Pair-Id={kpid}"
                                         is_drm = True
-                                        drm_info = {"media_id": media.get(
-                                            "id"), "post_id": post_id}
+                                        drm_info = {
+                                            "media_id": media_id,
+                                            "post_id": post_id,
+                                        }
 
-                            # 常规保底 (videoSources)
+                            # 保底
                             if not source and m_type in ["video", "audio"]:
                                 v_src = media.get("videoSources", {})
                                 source = v_src.get("720") or v_src.get(
                                     "240") or v_src.get("source")
 
                             if source and source not in self.assets:
-                                asset = Asset(post_id, text, source, m_type, posted_at,
+                                # 👑 传入 media_id
+                                asset = Asset(media_id, post_id, text, source, m_type, posted_at,
                                               source_type=source_type, is_drm=is_drm, drm_info=drm_info)
                                 self.assets[source] = asset
         except Exception:
@@ -338,7 +346,7 @@ class WanWanScraper:
         self.has_more = True
         no_change_count = 0
         last_height = await page.evaluate("document.body.scrollHeight")
-        with console.status(f"[bold magenta]琬琬正在{description}...[/bold magenta]") as status:
+        with console.status(f"[bold magenta]正在{description}...[/bold magenta]") as status:
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                 await asyncio.sleep(1.0)  # 稍微快一点
@@ -369,7 +377,7 @@ class WanWanScraper:
             return
 
         rprint(Panel(f"[bold cyan]第一阶段：下载 {
-               len(normal_assets)} 个普通资源[/bold cyan]", border_style="cyan"))
+               len(normal_assets)}/{len(self.assets)} 个普通资源[/bold cyan]", border_style="cyan"))
 
         concurrency = cfg.get("concurrency")
         timeout = cfg.get("timeout")
@@ -425,34 +433,40 @@ class WanWanScraper:
             "is_hunting": True
         }
 
-        # --- 👑 定义全局拦截器 (只定义一次) ---
+        # --- 👑 定义全局拦截器 (增强版拦截器：自带 3 次重试) ---
         async def global_interceptor(route: Route, request: Request):
-            # 只拦截发往 DRM 接口的 POST 请求
             if "/drm/" in request.url and request.method == "POST":
-                rprint(f"[dim]🎣 嗅探到 DRM 请求: {request.url}[/dim]")
+                rprint(f"[dim]🎣 嗅探到 DRM 请求[/dim]")
 
-                # 如果我们准备好了 Challenge，就进行替换
                 if state["current_challenge"]:
-                    try:
-                        # 移花接木：使用浏览器原本的 Headers/Cookie，只替换 Body
-                        response = await route.fetch(post_data=state["current_challenge"])
+                    # 尝试 3 次发送
+                    for attempt in range(3):
+                        try:
+                            # 发起请求 (timeout 设长一点，防止代理慢)
+                            response = await route.fetch(post_data=state["current_challenge"], timeout=15000)
 
-                        if response.status == 200:
-                            # 拿到 License！
-                            body = await response.body()
-                            state["captured_license"] = body
-                            rprint("[green]⚡️ License 捕获成功！[/green]")
-                        else:
-                            rprint(f"[red]❌ License服务器拒绝: {
-                                   response.status}[/red]")
+                            if response.status == 200:
+                                body = await response.body()
+                                state["captured_license"] = body
+                                rprint("[green]⚡️ License 捕获成功！[/green]")
+                            else:
+                                # 如果是 4xx/5xx 错误，那是服务器拒绝，重试也没用，直接打印
+                                rprint(f"[red]❌ License服务器拒绝: {
+                                       response.status}[/red]")
 
-                        # 放行请求，让页面不报错
-                        await route.fulfill(response=response)
-                        return
-                    except Exception as e:
-                        rprint(f"[red]Hook 失败: {e}[/red]")
-                        await route.continue_()
-                        return
+                            # 无论成功失败，只要网络通了，就完成请求
+                            await route.fulfill(response=response)
+                            return
+
+                        except Exception as e:
+                            # 👑 这里捕获 Socket disconnected 错误
+                            if attempt < 2:
+                                # rprint(f"[dim]⚠️ 网络抖动 ({e})，正在重试拦截...[/dim]")
+                                await asyncio.sleep(1)  # 歇一秒让代理缓口气
+                            else:
+                                rprint(f"[red]❌ Hook 彻底失败 (网络问题): {e}[/red]")
+                                await route.continue_()  # 放弃抵抗，放行原请求
+                                return
 
             # 其他请求一律放行
             await route.continue_()
@@ -472,183 +486,150 @@ class WanWanScraper:
         async with httpx.AsyncClient(**httpx_kwargs) as mpd_client:
 
             for i, asset in enumerate(drm_assets):
-                try:
-                    rprint(
-                        f"[yellow]⚔️ ({i+1}/{len(drm_assets)}) 正在猎杀: {asset.filename[:20]}...[/yellow]")
+                # 👑 建议：每处理 50 个视频，休息 2 秒，防止代理过热
+                if i > 0 and i % 50 == 0:
+                    rprint("[dim]☕ 休息一下，让代理服务器喘口气...[/dim]")
+                    await asyncio.sleep(2)
 
-                    # 1. 预备阶段：获取 PSSH 并计算 Challenge
-                    # (这步必须在点击播放前完成，否则拦截器没子弹)
-                    pssh_b64 = None
+                # 👑 最外层鲁棒性循环：每个视频最多尝试 5 次
+                for attempt in range(5):
                     try:
-                        # 优先用 Playwright 自身的上下文下载 MPD (带 Cookie)
-                        resp = await page.request.get(asset.url, timeout=5000)
-                        if resp.status == 200:
-                            xml_text = await resp.text()
+                        if attempt > 0:
+                            rprint(f"[yellow]⚠️ 第 {
+                                   attempt+1} 次重试: {asset.post_id}...[/yellow]")
                         else:
-                            raise Exception("Playwright fetch failed")
-                    except:
-                        # Fallback 到 httpx
-                        headers = {"User-Agent": "Mozilla/5.0"}
-                        if "cf_cookie" in asset.drm_info:
-                            headers["Cookie"] = asset.drm_info["cf_cookie"]
-                        resp = await mpd_client.get(asset.url, headers=headers)
-                        xml_text = resp.text
+                            rprint(
+                                f"[yellow]⚔️ ({i+1}/{len(drm_assets)}) 正在猎杀: {asset.filename[:20]}...[/yellow]")
+
+                        # 1. 预备阶段：获取 PSSH 并计算 Challenge
+                        # (这步必须在点击播放前完成，否则拦截器没子弹)
                         pssh_b64 = None
-
-                    # 精准定位 PSSH
-                    widevine_uuid = "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"
-                    uuid_index = xml_text.find(widevine_uuid)
-                    if uuid_index != -1:
-                        start_tag = "<cenc:pssh>"
-                        end_tag = "</cenc:pssh>"
-                        pssh_start_idx = xml_text.find(
-                            start_tag, uuid_index)
-                        if pssh_start_idx != -1:
-                            pssh_end_idx = xml_text.find(
-                                end_tag, pssh_start_idx)
-                            if pssh_end_idx != -1:
-                                pssh_b64 = xml_text[pssh_start_idx +
-                                                    len(start_tag):pssh_end_idx].strip()
-
-                    rprint(f"[dim]🔑 PSSH: {pssh_b64}[/dim]")
-
-                    if not pssh_b64:
-                        rprint("[red]❌ PSSH 获取失败，跳过[/red]")
-                        continue
-
-                    # 计算 Challenge 并装填给拦截器
-                    # 注意：每次都要重新生成 session_id 对应的 challenge
-                    # 为了简单，我们复用一个 session，或者每次 close/open。这里复用 session。
-                    challenge_bytes = cdm.get_license_challenge(
-                        session_id, PSSH(pssh_b64))
-
-                    # ♻️ 重置状态
-                    state["current_challenge"] = challenge_bytes
-                    state["captured_license"] = None
-
-                    # 2. 搜索阶段：滚动寻找目标 DOM
-                    # Vue Virtual Scroller 只有在视口附近才会渲染 DOM
-                    target_selector = f"a[data-id='{
-                        asset.post_id}'] .b-photos__item__play-btn"
-                    container_selector = f"a[data-id='{asset.post_id}']"
-
-                    found = False
-                    for _ in range(500):  # 最多尝试 500 次滚动
-                        if await page.locator(target_selector).count() > 0:
-                            btn = page.locator(target_selector).first
-
-                            # 1. 强力居中
-                            try:
-                                await btn.evaluate("el => el.scrollIntoView({block: 'center', inline: 'center'})")
-                                await asyncio.sleep(0.3)
-                            except:
-                                pass
-
-                            if await btn.is_visible():
-                                # 👑 逻辑闭环开始
-                                try:
-                                    # --- 动作 A: 点击封面打开弹窗 ---
-                                    # 使用 JS 点击
-                                    await btn.evaluate("el => el.click()")
-
-                                    # --- 动作 B: 精准定位播放按钮 (ID锁定) ---
-                                    # 不再用 .last 这种模糊定位，直接用 media_id 锁定播放器
-                                    # 这样绝对不会点到背景里的其他视频
-
-                                    media_id = asset.drm_info.get("media_id")
-                                    # 构造精准的 Selector: #videoPlayer-123456 .vjs-big-play-button
-                                    specific_play_selector = f"#videoPlayer-{
-                                        media_id} .vjs-big-play-button"
-
-                                    rprint(f"[dim]🎯 锁定播放器 ID: {
-                                           media_id}[/dim]")
-
-                                    try:
-                                        # 等待这个特定的 ID 出现
-                                        play_btn = page.locator(
-                                            specific_play_selector)
-                                        await play_btn.wait_for(state="visible", timeout=5000)
-                                        await play_btn.evaluate("el => el.click()")
-
-                                    except Exception:
-                                        # 如果 ID 定位失败（极少情况），尝试找“当前最顶层”的视频标签
-                                        # 模态框里的视频通常在 DOM 结构里会有特定的 data 属性，或者我们直接点 video 标签
-                                        rprint(
-                                            "[dim]⚠️ ID定位失败，尝试备用方案...[/dim]")
-                                        video_el = page.locator(
-                                            f"video[data-id='{media_id}']")
-                                        if await video_el.count() == 0:
-                                            # 如果没有 data-id，就找最后一个可见的 video (通常是弹窗里的)
-                                            video_el = page.locator(
-                                                "video").last
-
-                                        await video_el.wait_for(state="visible", timeout=3000)
-                                        await video_el.evaluate("el => el.click()")
-
-                                    # 如果走到这里，说明点击成功
-                                    found = True
-                                    break
-
-                                except Exception as e:
-                                    # 👑 异常处理：复位逻辑
-                                    rprint(f"[dim]⚠️ 交互受阻，复位中...[/dim]")
-
-                                    # 1. 关闭可能卡住的弹窗
-                                    await page.keyboard.press("Escape")
-
-                                    # 2. 等待页面恢复
-                                    await asyncio.sleep(0.8)
-
-                                    # 3. 强制进入下一次循环 (Continue)
-                                    continue
-
-                        # 没找到或复位了，继续滚轮下滑
-                        await page.mouse.wheel(0, 300)
-                        await asyncio.sleep(0.3)
-
-                    if not found:
-                        rprint("[red]❌ 未找到元素或多次尝试失败[/red]")
-                        continue
-
-                    # 3. 捕获阶段：等待 License
-                    # 点击后，页面会弹出模态框并自动播放，拦截器会在后台工作
-                    wait_start = time.time()
-                    got_it = False
-                    while time.time() - wait_start < 30:  # 最多等TIMEOUT秒
-                        if state["captured_license"]:
-                            got_it = True
-                            break
-                        await asyncio.sleep(0.2)
-
-                    if got_it:
-                        # 4. 解密阶段
                         try:
-                            cdm.parse_license(
-                                session_id, state["captured_license"])
-                            keys = cdm.get_keys(session_id)
-                            for key in keys:
-                                if key.type == "CONTENT":
-                                    asset.key = f"{key.kid.hex}:{
-                                        key.key.hex()}"
-                                    rprint(f"[bold green]🔑 解密成功: {
-                                           asset.key}[/bold green]")
-                                    break
-                        except Exception as e:
-                            rprint(f"[red]❌ License 解析失败: {e}[/red]")
-                    else:
-                        rprint("[red]⚠️ 捕获超时 (视频未自动播放？)[/red]")
+                            # 优先用 Playwright 自身的上下文下载 MPD (带 Cookie)
+                            resp = await page.request.get(asset.url, timeout=5000)
+                            if resp.status == 200:
+                                xml_text = await resp.text()
+                            else:
+                                raise Exception("Playwright fetch failed")
+                        except:
+                            # Fallback 到 httpx
+                            headers = {"User-Agent": "Mozilla/5.0"}
+                            if "cf_cookie" in asset.drm_info:
+                                headers["Cookie"] = asset.drm_info["cf_cookie"]
+                            resp = await mpd_client.get(asset.url, headers=headers)
+                            xml_text = resp.text
+                            pssh_b64 = None
 
-                    # 5. 闭环阶段：关闭模态框，复位
-                    # 无论成功失败，都要关闭当前视频，否则无法操作下一个
-                    # 发送 ESC 键是关闭 OnlyFans 媒体查看器最通用的方法
-                    rprint("[dim]🔙 关闭视频...[/dim]")
-                    await page.keyboard.press("Escape")
-                    await asyncio.sleep(1)  # 等待动画结束
+                        # 精准定位 PSSH
+                        widevine_uuid = "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"
+                        uuid_index = xml_text.find(widevine_uuid)
+                        if uuid_index != -1:
+                            start_tag = "<cenc:pssh>"
+                            end_tag = "</cenc:pssh>"
+                            pssh_start_idx = xml_text.find(
+                                start_tag, uuid_index)
+                            if pssh_start_idx != -1:
+                                pssh_end_idx = xml_text.find(
+                                    end_tag, pssh_start_idx)
+                                if pssh_end_idx != -1:
+                                    pssh_b64 = xml_text[pssh_start_idx +
+                                                        len(start_tag):pssh_end_idx].strip()
 
-                except Exception as e:
-                    rprint(f"[red]💥 流程异常: {e}[/red]")
-                    # 尝试按一下 ESC 以防卡在模态框里
-                    await page.keyboard.press("Escape")
+                        rprint(f"[dim]🔑 PSSH: {pssh_b64}[/dim]")
+
+                        if not pssh_b64:
+                            rprint("[red]❌ PSSH 获取失败，跳过[/red]")
+                            continue  # 重试
+
+                        # 计算 Challenge 并装填给拦截器
+                        # 注意：每次都要重新生成 session_id 对应的 challenge
+                        # 为了简单，我们复用一个 session，或者每次 close/open。这里复用 session。
+                        challenge_bytes = cdm.get_license_challenge(
+                            session_id, PSSH(pssh_b64))
+
+                        # ♻️ 重置状态
+                        state["current_challenge"] = challenge_bytes
+                        state["captured_license"] = None
+
+                        # 2. 搜索阶段：👑 皇上御赐极简点击逻辑
+                        # 直接去帖子页
+                        if self.username:
+                            target_url = f"https://onlyfans.com/{
+                                asset.post_id}/{self.username}"
+                        else:
+                            target_url = f"https://onlyfans.com/{
+                                asset.post_id}"
+
+                        rprint(f"[cyan]🚀 直达: {target_url}[/cyan]")
+                        await page.goto(target_url, wait_until="domcontentloaded")
+
+                        # 👑 皇上御赐：10秒智能等待逻辑
+                        clicked = False
+                        wait_start_time = time.time()
+
+                        # 循环检测按钮是否出现 (最多等10秒)
+                        while time.time() - wait_start_time < 10:
+                            # 优先找大按钮
+                            if await page.locator(".vjs-big-play-button").is_visible():
+                                await page.locator(".vjs-big-play-button").first.click()
+                                clicked = True
+                                break
+
+                            # 备选找视频标签 (有些皮肤没有大按钮)
+                            if await page.locator("video").is_visible():
+                                # 确保不是头图，而是真正的视频元素
+                                await page.locator("video").first.click()
+                                clicked = True
+                                break
+
+                            await asyncio.sleep(0.5)  # 每0.5秒看一眼
+
+                        if not clicked:
+                            rprint(
+                                "[dim]⚠️ 10秒内未找到播放按钮，可能已自动播放或加载慢，尝试强制等待...[/dim]")
+
+                        # 3. 捕获阶段：等待 License
+                        # 点击后，页面会弹出模态框并自动播放，拦截器会在后台工作
+                        wait_start = time.time()
+                        got_it = False
+                        while time.time() - wait_start < 30:  # 最多等TIMEOUT秒
+                            if state["captured_license"]:
+                                got_it = True
+                                break
+                            await asyncio.sleep(0.2)
+
+                        if got_it:
+                            # 4. 解密阶段
+                            try:
+                                cdm.parse_license(
+                                    session_id, state["captured_license"])
+                                keys = cdm.get_keys(session_id)
+                                for key in keys:
+                                    if key.type == "CONTENT":
+                                        asset.key = f"{key.kid.hex}:{
+                                            key.key.hex()}"
+                                        rprint(f"[bold green]🔑 解密成功: {
+                                            asset.key}[/bold green]")
+                                        break
+
+                                self.save_cache()
+                                break  # 成功，跳出重试循环
+                            except Exception as e:
+                                rprint(f"[red]❌ License 解析失败: {e}[/red]")
+                        else:
+                            rprint("[red]⚠️ 捕获超时 (视频未自动播放？)[/red]")
+                            # 没有捕获到，抛出异常以触发重试
+                            raise Exception("Capture Timeout")
+                    except Exception as e:
+                        rprint(f"[red]💥 尝试失败: {e}[/red]")
+                        # 复位页面状态，为下一次重试做准备
+                        try:
+                            await page.keyboard.press("Escape")
+                            await asyncio.sleep(1)
+                        except:
+                            pass
+                        # 继续下一次重试循环
+                        continue
 
         # 结束清理
         cdm.close(session_id)
@@ -677,22 +658,29 @@ class WanWanScraper:
                 None, asset, progress, main_task, semaphore, is_drm_tool=True) for asset in unlocked_assets]
             await asyncio.gather(*tasks)
 
-    async def download_worker(self, client, asset: Asset, progress, main_task, semaphore, is_drm_tool=False):
-        file_path = self.base_dir / asset.filename
+    async def download_worker(self, client, asset: Asset, progress, main_task_id: TaskID, semaphore, is_drm_tool=False):
+        # 👑 使用 .part 临时文件，防止损坏文件污染目录
+        final_path = self.base_dir / asset.filename
+        temp_path = self.base_dir / f"{asset.filename}.part"
 
         # 重新读取配置，因为可能在运行时修改
         re_path = cfg.get("re_tool_path")
 
         async with semaphore:
-            if file_path.exists() and file_path.stat().st_size > 0:
-                progress.advance(main_task)
-                return
+            # 1. 检查已存在的完整文件
+            if final_path.exists() and final_path.stat().st_size > 0:
+                # 这里可以加一个简单的逻辑：如果本地文件太小（比如0字节），视为损坏，重新下
+                if final_path.stat().st_size > 1024:
+                    progress.advance(main_task_id)
+                    return
+                else:
+                    os.remove(final_path)  # 删除垃圾文件
 
+            # 📺 DRM 下载 (RE工具自带校验，我们只负责调用)
             if is_drm_tool and asset.key:
                 try:
                     progress.update(
-                        main_task, description=f"[red]RE[/red] {asset.filename[:20]}")
-
+                        main_task_id, description=f"[red]RE[/red] {asset.filename[:20]}")
                     parsed = urlparse(asset.url)
                     clean_url = f"{
                         parsed.scheme}://{parsed.netloc}{parsed.path}"
@@ -704,7 +692,7 @@ class WanWanScraper:
                         signature}; CloudFront-Key-Pair-Id={kpid}"
 
                     cmd = [
-                        re_path,  # 👑 使用配置里的路径
+                        re_path,
                         clean_url,
                         "--save-dir", str(self.base_dir),
                         "--save-name", asset.filename.replace(".mp4", ""),
@@ -718,30 +706,78 @@ class WanWanScraper:
 
                     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
                     await proc.wait()
-                    if proc.returncode != 0:
+
+                    # RE 工具如果生成了文件，一般是完整的，简单校验一下存在性
+                    if final_path.exists():
+                        pass
+                    elif proc.returncode != 0:
                         rprint(f"[red]RE失败: {asset.filename}[/red]")
                 except Exception as e:
                     rprint(f"[red]RE异常: {e}[/red]")
 
+            # 📸 普通下载 (图片/视频/音频) - 👑 重点修复区域！
             elif not is_drm_tool and client:
-                try:
-                    progress.update(
-                        main_task, description=f"[blue]DL[/blue] {asset.filename[:20]}")
-                    headers = {"User-Agent": "Mozilla/5.0"}
-                    async with client.stream("GET", asset.url, headers=headers, follow_redirects=True) as response:
-                        if response.status_code == 200:
-                            async with aiofiles.open(file_path, "wb") as f:
-                                async for chunk in response.aiter_bytes():
-                                    await f.write(chunk)
-                except:
-                    pass
+                # 重试机制：最多试3次
+                for attempt in range(3):
+                    try:
+                        progress.update(main_task_id, description=f"[blue]DL({
+                                        attempt+1})[/blue] {asset.filename[:15]}")
 
-            progress.advance(main_task)
+                        headers = {"User-Agent": "Mozilla/5.0"}
+
+                        # 发起请求
+                        async with client.stream("GET", asset.url, headers=headers, follow_redirects=True) as response:
+                            if response.status_code != 200:
+                                rprint(f"[red]HTTP {
+                                       response.status_code}[/red]")
+                                if response.status_code == 404:
+                                    break  # 404就不重试了
+                                continue  # 其他错误重试
+
+                            # 👑 获取预期大小
+                            total_size = int(
+                                response.headers.get('Content-Length', 0))
+
+                            # 下载到 .part
+                            downloaded_size = 0
+                            async with aiofiles.open(temp_path, "wb") as f:
+                                async for chunk in response.aiter_bytes():
+                                    if chunk:
+                                        await f.write(chunk)
+                                        downloaded_size += len(chunk)
+
+                            # 👑 完整性校验！
+                            # 如果服务器给了长度，且下载长度不一致，说明断流了！
+                            if total_size > 0 and downloaded_size != total_size:
+                                raise Exception(f"Incomplete download: {
+                                                downloaded_size}/{total_size}")
+
+                            # 校验通过，改名转正
+                            if os.path.exists(temp_path):
+                                os.rename(temp_path, final_path)
+
+                            # 成功，跳出重试循环
+                            break
+
+                    except Exception as e:
+                        rprint(f"[dim]下载中断: {e}，重试中...[/dim]")
+                        await asyncio.sleep(1)  # 歇一秒再试
+                        if os.path.exists(temp_path):
+                            try:
+                                os.remove(temp_path)  # 删掉坏的
+                            except:
+                                pass
+
+                    # 如果3次都失败，最后清理一下
+                    if attempt == 2 and not final_path.exists():
+                        rprint(f"[red]❌ 彻底失败: {asset.filename}[/red]")
+
+            progress.advance(main_task_id)
 
     # -------------------------------------------------------------------------
     # 👑 主控流程
     # -------------------------------------------------------------------------
-    async def start_scraping(self):
+    async def start_scraping(self, no_scroll=False):
         # 👑 使用持久化目录 (免登录)
         user_data_dir = os.path.join(os.getcwd(), "browser_data")
         # 👑 从配置读取 Chrome 路径
@@ -879,13 +915,23 @@ class WanWanScraper:
             try:
                 await page.wait_for_url(f"**/{self.user_id}/media", timeout=0)
                 await page.wait_for_selector(".user_posts", state="visible", timeout=0)
+                # 👑 [新增] 截获用户名逻辑
+                # 此时 URL 应该是 https://onlyfans.com/{username}/media
+                # 万能正则：匹配两个斜杠中间的任意字符(非 / 的所有字符)
+                # 这样不管是中文、Emoji、还是 URL 编码，统统都能抓到！
+                match = re.search(r'onlyfans\.com/([^/]+)/media', page.url)
+                if match:
+                    self.username = match.group(1)
+                    rprint(f"[green]✅ 捕获用户名: {self.username}[/green]")
+                else:
+                    rprint("[yellow]⚠️ 未能提取用户名，将使用 ID 进行尝试...[/yellow]")
             except:
                 rprint("[yellow]⚠️ 跳转超时，可能需要手动登录或验证...[/yellow]")
 
             # 5. 抓取 API
-            await self._scroll_page(page, "扫荡主页")
-
-            self.save_cache()
+            if not no_scroll:
+                await self._scroll_page(page, "扫荡主页")
+                self.save_cache()
 
             # -----------------------------------------------------------------
             # 🚀 执行三步走战略
@@ -907,7 +953,6 @@ class WanWanScraper:
             rprint(Panel("[bold green]🎉 全流程任务结束！[/bold green]",
                    border_style="green"))
 
-    # ... (save_cache, load_cache, archive_manifest 保持不变) ...
     def save_cache(self):
         try:
             with open(f"{CACHE_PREFIX}{self.user_id}.json", "w", encoding="utf-8") as f:
@@ -977,15 +1022,9 @@ def main():
     try:
         if scraper.load_cache():
             if Confirm.ask("直接开始下载/解密？(选No则重新抓取API)", default=True):
-                # 如果是直接下载，也需要触发下载逻辑，这里我们调用一个简化流程或者复用 start_scraping
-                # 但 start_scraping 包含浏览器启动。如果只是想下载缓存里的，应该拆分。
-                # 鉴于代码结构，为了 DRM 解密（需要浏览器），我们还是建议走完整流程，
-                # 或者如果缓存里 key 都有了，可以只走下载。
-                # 这里为了稳妥，且皇上主要想用浏览器猎杀，我们还是走 start_scraping，
-                # 它内部会判断 asset 是否已存在。
-                asyncio.run(scraper.start_scraping())
+                asyncio.run(scraper.start_scraping(True))
             else:
-                asyncio.run(scraper.start_scraping())
+                asyncio.run(scraper.start_scraping(False))
         else:
             asyncio.run(scraper.start_scraping())
     except KeyboardInterrupt:
